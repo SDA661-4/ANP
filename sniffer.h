@@ -23,55 +23,18 @@ public:
 private slots:
     on_Open_clicked();
 
+    void on_pushButton_clicked();
+
 private:
     Ui::Sniffer *ui;
 };
 
 
-//struct PcapHeader
-//{
-//    qint32 t1;
-//    qint32 t2;
-//    qint32 caplen;
-//    qint32 len;
-//};
-
-//class myPacket
-//{
-//public:
-
-//    myPacket(const myPacket &p)
-//        {
-//         m_pHeader=p.m_pHeader;
-//         m_data=new unsigned char[m_pHeader.caplen];
-//         memcpy(p.m_data,m_data,m_pHeader.caplen);
-//        };
-//    myPacket()
-//        {
-//        m_data = NULL;
-//        };
-//    ~myPacket()
-//        {
-//         if(m_data!=NULL) delete []m_data;
-//        };
-//    void operator = (const myPacket &p)
-//        {
-//         m_pHeader=p.m_pHeader;
-//         m_data=new unsigned char[m_pHeader.caplen];
-//         memcpy(p.m_data,m_data,m_pHeader.caplen);
-//        };
-
-//    virtual void show();
-//private:
-//    PcapHeader m_pHeader;
-//    unsigned char* m_data;
-//};
-
-class Den
+class Pop
 {
 public:
     PcapHeader pHeader;
-    unsigned char data[2000];
+    unsigned char data[65000];
 };
 
 struct PcapFHeader
@@ -90,7 +53,7 @@ class PacketStream
 
 public:
     PcapFHeader fHeader;
-    QVector <Den> VECpackets;
+    QList <Pop> ALLpackets;
 };
 
 

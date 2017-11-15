@@ -6,9 +6,7 @@
 
 QT       += core gui
 
-INCLUDEPATH += "C:/winpcap/include"
-INCLUDEPATH += "C:/winpcap/lib"
-LIBS += -L"C:/winpcap/lib" -lwpcap -lws2_32
+
 
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets

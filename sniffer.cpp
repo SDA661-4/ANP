@@ -4,7 +4,6 @@
 #include "QFile"
 #include "QFileDialog"
 #include <QTextStream>
-#include "pcap.h"
 #include <iostream>
 #include <cstdio>
 #include <sdapacket.h>
@@ -16,8 +15,9 @@ using namespace std;
 
 PacketStream ps;
 PcapHeader ph;
-SDApacket pk;
-
+Pop pops;
+QString fName;
+int allpackets = 0;
 
 Sniffer::Sniffer(QWidget *parent) :
     QMainWindow(parent),
@@ -35,11 +35,19 @@ Sniffer::~Sniffer()
 
  Sniffer::on_Open_clicked()
 {
-    QString fName = QFileDialog::getOpenFileName(0,"Open File:","","CAP files (*.cap)");
+    fName = QFileDialog::getOpenFileName(0,"Open File:","","CAP files (*.cap)");
     qDebug() << fName;
     if (fName=="")
         return 1;
     QFile file(fName);
+
+
+    allpackets = 0;
+    ui->Text->setText("");
+    ui->Avrg->setText("");
+    ui->Max->setText("");
+    ui->Min->setText("");
+    ui->Pack->setText("");
 
     if (!file.open(QIODevice::ReadOnly))
     {
@@ -48,95 +56,139 @@ Sniffer::~Sniffer()
     }
 
     qDebug() << "Size = " << file.size();
-    FILE *f;
-    f=fopen("test.txt","w");
     file.read((char *)&ps.fHeader, 24);
-    fprintf(f,"\t PCAP File Header: \n");
-    fprintf(f,"Link type: %d\n",ps.fHeader.linktype);
-    fprintf(f,"Max packet size: %d bytes\n",ps.fHeader.snaplen);
-    fprintf(f,"Sigfigs: %d\n",ps.fHeader.sigfigs);
-    fprintf(f,"Local correction to gmt: %d\n",ps.fHeader.thiszone);
-    fprintf(f,"Minor: %d\n",ps.fHeader.version_minor);
-    fprintf(f,"Major: %d\n",ps.fHeader.version_major);
-    fprintf(f,"Magic number: %d\n",ps.fHeader.magic);
-    fprintf(f,"\n\n");
+    ui->Text->append("\t PCAP File Header: ");
+    ui->Text->append("Link type: "+QString::number(ps.fHeader.linktype));
+    ui->Text->append("Max packet size: "+QString::number(ps.fHeader.snaplen)+" bytes");
+    ui->Text->append("Sigfigs: "+QString::number(ps.fHeader.sigfigs));
+    ui->Text->append("Local correction to gmt: "+QString::number(ps.fHeader.thiszone));
+    ui->Text->append("Minor: "+QString::number(ps.fHeader.version_minor));
+    ui->Text->append("Major: "+QString::number(ps.fHeader.version_major));
+    ui->Text->append("Magic number: "+QString::number(ps.fHeader.magic));
+    ui->Text->append("");
     qDebug() << "pos" << file.pos();
     qDebug() << "size" << file.size();
     qDebug() << "1";
-    int allpackets = 0;
     int minl = 99999999;
     int maxl = 0;
     int avrgl = 0;
+
     while (file.pos() < file.size())
     {
-        allpackets++;
-        qDebug() << "C";
-        file.read((char *) &pk.m_pHeader, 16);
-        fprintf(f,"Packets # %i\n",allpackets);
-        fprintf(f, "\tt1: %d milisec\n",pk.m_pHeader.t1);
-        fprintf(f, "\tt2: %d milisec\n",pk.m_pHeader.t2);
-        fprintf(f,"\tPacket: %d bytes\n",pk.m_pHeader.len);
-        if (pk.m_pHeader.caplen > maxl)
-                    maxl = pk.m_pHeader.caplen;
-                if (pk.m_pHeader.caplen < minl)
-                    minl = pk.m_pHeader.caplen;
-                avrgl=avrgl+pk.m_pHeader.caplen;
-        fprintf(f, "\tPacket: %d bytes captured\n", pk.m_pHeader.caplen);
-        fprintf(f,"\n");
-        file.seek(file.pos()+ pk.m_pHeader.caplen);
+        file.read((char *) &pops.pHeader, 16);
+        file.read((char*) &pops.data,pops.pHeader.caplen);
+        ui->Text->append("Packets # "+QString::number(allpackets));
+        ui->Text->append("\tt1: "+QString::number(pops.pHeader.t1)+" milisec");
+        ui->Text->append("\tt2: "+QString::number(pops.pHeader.t2)+" milisec");
+        ui->Text->append("\tPacket: "+QString::number(pops.pHeader.len)+"bytes");
+        if (pops.pHeader.caplen > maxl)
+                    maxl = pops.pHeader.caplen;
+                if (pops.pHeader.caplen < minl)
+                    minl = pops.pHeader.caplen;
+                avrgl=avrgl+pops.pHeader.caplen;
+        ui->Text->append("\tPacket: "+QString::number(pops.pHeader.caplen)+" bytes captured");
+//        for(int i=0; i<pops.pHeader.caplen; i++){
+//        qDebug()<<hex<<(pops.data[i]&0xff);
+//        };
+        ui->Text->append("");
+        ps.ALLpackets.append(pops);
+       // ui->Text->setText(ps.ALLpackets.at(1));
+
+//        for(int i=0; i<pops.pHeader.caplen;i++)
+//        {
+//            QString dq;
+//            dq=QString::number(pops.data[i]);
+//            int d=dq.toInt();
+//            //d=QString::number(pops.data[i]);
+//            QString s=QString::number(d,16).toUpper();
+//            ui->Pack->insertPlainText(" "+s);
+//            qDebug()<<hex<<(pops.data[i]&0xff);
+//        }
+
+        //file.seek(file.pos()+ pk.m_pHeader.caplen);
+//        z=z+1;
         qDebug() << "2";
+        qDebug() <<"data v 1: " << ps.ALLpackets[0].pHeader.caplen;
+        allpackets++;
     }
-    qDebug() << "3";
-    avrgl=avrgl/allpackets;
-    QFile f1("test.txt");
-    if ((f1.exists())&&(f1.open(QIODevice::ReadOnly)))
-        {
-            ui->Text->setText(f1.readAll());
-            ui->Avrg->setText(QString::number(avrgl));
-            ui->Max->setText(QString::number(maxl));
-            ui->Min->setText(QString::number(minl));
-        };
 
-
-//    FILE* f1= fopen("test.txt", "w");
-
-
-//    ui->Text->setText(QString::number(file.size()));
-//    ui->Text->setText(QString::number(ps.fHeader.snaplen));
-   // ui->Text->setText(QString::number(ps.packets.caplen));
-    //qDebug() << pck.pHeader.caplen;
+            ui->Avrg->append(QString::number(avrgl/allpackets));
+            ui->Max->append(QString::number(maxl));
+            ui->Min->append(QString::number(minl));
 
     qDebug() << ps.fHeader.snaplen << "   " << ps.fHeader.linktype << " " << file.size();
-
-    file.close();
-
-
+    return 1;
 }
 
-// myPacket::myPacket()
-// {
-//     m_data = NULL;
-// }
-
-// myPacket::~myPacket()
-// {
-//     if(m_data!=NULL) delete []m_data;
-// }
-
-// myPacket::myPacket(const myPacket &p)
-// {
-//     m_pHeader=p.m_pHeader;
-//     m_data=new unsigned char[m_pHeader.caplen];
-//     memcpy(p.m_data,m_data,m_pHeader.caplen);
-// }
-
-// void myPacket::operator =(const myPacket &p)
-// {
-//     m_pHeader=p.m_pHeader;
-//     m_data=new unsigned char[m_pHeader.caplen];
-//     memcpy(p.m_data,m_data,m_pHeader.caplen);
-// }
 
 
+void Sniffer::on_pushButton_clicked()
+{
+  //QFile file(fName);
+  QString l;
+  l=ui->Num->text();
+  int n = l.toInt();
+//  if (!file.open(QIODevice::ReadOnly))
+//  {
+//          qDebug() << "Error while opening file";
+//          return ;
+//  }
+  if(n<allpackets)
+  {
+      //file.read((char *)&ps.fHeader, 24);
+      ui->Text->setText("");
+      ui->Text->append("\t PCAP File Header: ");
+      ui->Text->append("Link type: "+QString::number(ps.fHeader.linktype));
+      ui->Text->append("Max packet size: "+QString::number(ps.fHeader.snaplen)+" bytes");
+      ui->Text->append("Sigfigs: "+QString::number(ps.fHeader.sigfigs));
+      ui->Text->append("Local correction to gmt: "+QString::number(ps.fHeader.thiszone));
+      ui->Text->append("Minor: "+QString::number(ps.fHeader.version_minor));
+      ui->Text->append("Major: "+QString::number(ps.fHeader.version_major));
+      ui->Text->append("Magic number: "+QString::number(ps.fHeader.magic));
+      ui->Text->append("");
+      qDebug() << n;
+      ui->Text->append("Packets # "+QString::number(n));
+      ui->Text->append("\tt1: "+QString::number(ps.ALLpackets[n].pHeader.t1)+" milisec");
+      ui->Text->append("\tt2: "+QString::number(ps.ALLpackets[n].pHeader.t2)+" milisec");
+      ui->Text->append("\tPacket: "+QString::number(ps.ALLpackets[n].pHeader.len)+"bytes");
+      ui->Text->append("\tPacket: "+QString::number(ps.ALLpackets[n].pHeader.caplen)+" bytes captured");
+      ui->Pack->clear();
+      ui->Pack->insertPlainText("Data: ");
+      for(int i=0; i<ps.ALLpackets[n].pHeader.caplen;i++)
+      {
+          QString dq;
+          dq=QString::number(ps.ALLpackets[n].data[i]);
+          int d=dq.toInt();
+          //d=QString::number(pops.data[i]);
+          QString s=QString::number(d,16).toUpper();
+          ui->Pack->insertPlainText(" "+s);
+          //qDebug()<<hex<<(pops.data[i]&0xff);
+      };
 
 
+//      file.seek(N[n]);
+//      file.read((char *) &pk.m_pHeader, 16);
+//      file.read((char*) &pops.data,pk.m_pHeader.caplen);
+//      ui->Text->append("Packets # "+QString::number(n));
+//      ui->Text->append("\tt1: "+QString::number(pk.m_pHeader.t1)+" milisec");
+//      ui->Text->append("\tt1: "+QString::number(pk.m_pHeader.t2)+" milisec");
+//      ui->Text->append("\tPacket: "+QString::number(pk.m_pHeader.len)+"bytes");
+//      ui->Text->append("\tPacket: "+QString::number(pk.m_pHeader.caplen)+" bytes captured");
+//      ui->Pack->clear();
+//      ui->Pack->insertPlainText("Data: ");
+//      for(int i=0; i<pk.m_pHeader.caplen;i++)
+//      {
+//          QString dq;
+//          dq=QString::number(pops.data[i]);
+//          int d=dq.toInt();
+//          //d=QString::number(pops.data[i]);
+//          QString s=QString::number(d,16).toUpper();
+//          ui->Pack->insertPlainText(" "+s);
+//          qDebug()<<hex<<(pops.data[i]&0xff);
+//      };
+  }
+  else
+  {
+      ui->Pack->setText("There is no such packet, please try another number");
+  }
+}

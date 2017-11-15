@@ -2,9 +2,7 @@
 
 SDApacket::SDApacket()
 {
-
   m_data = NULL;
-
 }
 
 SDApacket::~SDApacket()
