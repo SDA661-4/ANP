@@ -37,9 +37,7 @@ Sniffer::~Sniffer()
 
  Sniffer::on_Open_clicked()
 {
-    qDebug()<<ps.ALLpackets.size();
     fName = QFileDialog::getOpenFileName(0,"Open File:","","CAP files (*.cap)");
-    qDebug() << fName;
     if (fName=="")
         return 1;
     QFile file(fName);
@@ -56,7 +54,6 @@ Sniffer::~Sniffer()
             return 1;
     }
 
-    qDebug() << "Size = " << file.size();
     file.read((char *)&ps.fHeader, 24);
     ui->Text->append("\t PCAP File Header: \nLink type: "+QString::number(ps.fHeader.linktype)+"\nMax packet size: "+QString::number(ps.fHeader.snaplen)+" bytes");
 
@@ -69,10 +66,7 @@ Sniffer::~Sniffer()
     ui->Text->append("Major: "+QString::number(ps.fHeader.version_major));
     ui->Text->append("Magic number: "+QString::number(ps.fHeader.magic));
     ui->Text->append("");
-    qDebug() << "pos" << file.pos();
-    qDebug() << "size" << file.size();
-    qDebug() << "1";
-    int minl = 99999999;
+    int minl = 100000000;
     int maxl = 0;
     int avrgl = 0;
 
@@ -80,8 +74,15 @@ Sniffer::~Sniffer()
     {
         qDebug()<<ps.ALLpackets.size()<<"sizzze";
         file.read((char *) &pops.pHeader, 16);
-        file.read((char*) &pops.data,pops.pHeader.caplen);
-        qDebug()<<"1";
+//        qDebug()<<"1";
+        pops.data=new unsigned char[pops.pHeader.caplen];
+//        qDebug()<<"2";
+        for(int i=0; i<pops.pHeader.caplen; i++)
+        {
+            file.read((char*) &pops.data[i],1);
+//            qDebug()<<"3";
+        };
+//        qDebug()<<"4";
         ps.ALLpackets.append(pops);
         ui->Text->append("Packets # "+QString::number(allpackets));
         ui->Text->append("\tt1: "+QString::number(pops.pHeader.t1)+" milisec");
@@ -108,15 +109,16 @@ Sniffer::~Sniffer()
 //        }
 
 
-        qDebug() << "2";
         allpackets++;
+        delete [] pops.data;
+        qDebug()<<allpackets<<" pac";
     }
 
             ui->Avrg->append(QString::number(avrgl/allpackets));
             ui->Max->append(QString::number(maxl));
             ui->Min->append(QString::number(minl));
 
-    qDebug() << ps.fHeader.snaplen << "   " << ps.fHeader.linktype << " " << file.size();
+
     return 1;
 }
 
@@ -139,7 +141,7 @@ void Sniffer::on_pushButton_clicked()
       ui->Text->append("Major: "+QString::number(ps.fHeader.version_major));
       ui->Text->append("Magic number: "+QString::number(ps.fHeader.magic));
       ui->Text->append("");
-      qDebug() << n;
+      //qDebug() << n;
       ui->Text->append("Packets # "+QString::number(n));
       ui->Text->append(" t1: "+QString::number(ps.ALLpackets[n].pHeader.t1)+" milisec");
       ui->Text->append(" t2: "+QString::number(ps.ALLpackets[n].pHeader.t2)+" milisec");
@@ -209,7 +211,6 @@ void Sniffer::on_pushButton_clicked()
       pos=23;
       dc = QString::number(ps.ALLpackets[n].data[pos]);
       d=dc.toInt();
-      qDebug()<<"prot "<<d;
       s = QString::number(d,16).toUpper();
       ui->Text->append("");
       if(d<16)
@@ -244,7 +245,7 @@ void Sniffer::on_pushButton_clicked()
       d=s1.toInt();
       s1=QString::number(d,16).toUpper();
       s=s+s1;
-      ui->Text->insertPlainText(" Source Port: "+s);
+      ui->Text->insertPlainText(" Source Port: "+QString::number(s.toInt(0,16),10));
 
       ui->Text->append("");
       pos=36+k;
@@ -255,7 +256,7 @@ void Sniffer::on_pushButton_clicked()
       d=s1.toInt();
       s1=QString::number(d,16).toUpper();
       s=s+s1;
-      ui->Text->insertPlainText(" Destination Port: "+s);
+      ui->Text->insertPlainText(" Destination Port: "+QString::number(s.toInt(0,16),10));
 
 
       ui->Pack->clear();
@@ -265,10 +266,8 @@ void Sniffer::on_pushButton_clicked()
           QString dq;
           dq=QString::number(ps.ALLpackets[n].data[i]);
           int d=dq.toInt();
-          //d=QString::number(pops.data[i]);
           QString s=QString::number(d,16).toUpper();
           ui->Pack->insertPlainText(" "+s);
-          //qDebug()<<hex<<(pops.data[i]&0xff);
       };
 
 

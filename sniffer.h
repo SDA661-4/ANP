@@ -34,7 +34,7 @@ class Pop
 {
 public:
     PcapHeader pHeader;
-    unsigned char data[65000];
+    unsigned char* data;
 };
 
 struct PcapFHeader
