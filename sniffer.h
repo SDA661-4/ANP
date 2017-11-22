@@ -22,7 +22,8 @@ public:
 
 private slots:
     on_Open_clicked();
-
+    void IP_analyzer(int n,int pos);
+    void if_TCP_UDP(int n, int d, int pos, int k);
     void on_pushButton_clicked();
 
 private:
